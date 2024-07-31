@@ -1,10 +1,9 @@
 import io.qameta.allure.Step;
-import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import static io.restassured.RestAssured.given;
+import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 
@@ -12,31 +11,10 @@ public class LoginCourierTest {
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = URL.PLACEHOLDER_HOST;
-
+        CreateCourierApi createCourierApi = new CreateCourierApi();
         CreateCourier createCourier = new CreateCourier("kotov_35", "qwe1234", "Maxim");
-        given()
-                .header("Content-type", "application/json")
-                .body(createCourier)
-                .when()
-                .post(URL.CREATE_COURIER_API)
-                .then().assertThat().statusCode(201)
-                .and()
-                .assertThat().body("ok", equalTo(true));
+        createCourierApi.postCreateCourierRequest(createCourier);
     }
-
-//    @Test //курьер может авторизоваться, для авторизации нужно передать все обязательные поля, успешный запрос возвращает id
-//    public void loginCourierTest() {
-//        LoginCourier loginCourier = new LoginCourier("kotov_35", "qwe1234");
-//        given()
-//                .header("Content-type", "application/json")
-//                .body(loginCourier)
-//                .when()
-//                .post(URL.LOGIN_COURIER_API)
-//                .then().assertThat().statusCode(200)
-//                .and()
-//                .assertThat().body("id", notNullValue());
-//    }
 
     @Test
     public void loginCourierTest(){
@@ -45,38 +23,12 @@ public class LoginCourierTest {
         compareBodyIdForNotNullVallue(response);
     }
 
-//    @Test //система вернёт ошибку, если неправильно указать логин
-//    public void loginCourierWithWrongLoginTest(){
-//        LoginCourier loginCourier = new LoginCourier("kotov_999", "qwe1234");
-//        given()
-//                .header("Content-type", "application/json")
-//                .body(loginCourier)
-//                .when()
-//                .post(URL.LOGIN_COURIER_API)
-//                .then().assertThat().statusCode(404)
-//                .and()
-//                .assertThat().body("message", equalTo("Учетная запись не найдена"));
-//    }
-
     @Test
     public void loginCourierWithWrongLoginTest(){
         Response response = sendPostRequestCourierLogin("kotov_999", "qwe1234");
         compareStatusCode404(response);
         compareBodyMessageAccountNotFound(response);
     }
-
-//    @Test //система вернёт ошибку, если неправильно указать пароль
-//    public void loginCourierWithWrongPasswordTest(){
-//        LoginCourier loginCourier = new LoginCourier("kotov_35", "55qwe55");
-//        given()
-//                .header("Content-type", "application/json")
-//                .body(loginCourier)
-//                .when()
-//                .post(URL.LOGIN_COURIER_API)
-//                .then().assertThat().statusCode(404)
-//                .and()
-//                .assertThat().body("message", equalTo("Учетная запись не найдена"));
-//    }
 
     @Test
     public void loginCourierWithWrongPasswordTest(){
@@ -85,19 +37,6 @@ public class LoginCourierTest {
         compareBodyMessageAccountNotFound(response);
     }
 
-//    @Test //если логина нет, запрос возвращает ошибку
-//    public void loginCourierWithoutLoginTest(){
-//        LoginCourier loginCourier = new LoginCourier("", "qwe1234");
-//        given()
-//                .header("Content-type", "application/json")
-//                .body(loginCourier)
-//                .when()
-//                .post(URL.LOGIN_COURIER_API)
-//                .then().assertThat().statusCode(400)
-//                .and()
-//                .assertThat().body("message", equalTo("Недостаточно данных для входа"));
-//    }
-
     @Test
     public void loginCourierWithoutLoginTest(){
         Response response = sendPostRequestCourierLogin("", "qwe1234");
@@ -105,38 +44,12 @@ public class LoginCourierTest {
         compareBodyMessageNotEnoughDataToLogIn(response);
     }
 
-//    @Test //если пароля нет, запрос возвращает ошибку
-//    public void loginCourierWithoutPasswordTest(){
-//        LoginCourier loginCourier = new LoginCourier("kotov_35", "");
-//        given()
-//                .header("Content-type", "application/json")
-//                .body(loginCourier)
-//                .when()
-//                .post(URL.LOGIN_COURIER_API)
-//                .then().assertThat().statusCode(400)
-//                .and()
-//                .assertThat().body("message", equalTo("Недостаточно данных для входа"));
-//    }
-
     @Test
     public void loginCourierWithoutPasswordTest(){
         Response response = sendPostRequestCourierLogin("kotov_35", "");
         compareStatusCode400(response);
         compareBodyMessageNotEnoughDataToLogIn(response);
     }
-
-//    @Test //если авторизоваться под несуществующим пользователем, запрос возвращает ошибку;
-//    public void loginCourierNonExistentUserTest(){
-//        LoginCourier loginCourier = new LoginCourier("kotov_praktikum_999", "testdata12345");
-//        given()
-//                .header("Content-type", "application/json")
-//                .body(loginCourier)
-//                .when()
-//                .post(URL.LOGIN_COURIER_API)
-//                .then().assertThat().statusCode(404)
-//                .and()
-//                .assertThat().body("message", equalTo("Учетная запись не найдена"));
-//    }
 
     @Test
     public void loginCourierNonExistentUserTest(){
@@ -152,37 +65,29 @@ public class LoginCourierTest {
         compareBodyMessageNotEnoughDataToLogIn(response);
     }
 
+
     @After
     public void deleteNewCourier(){
+        LoginCourierApi loginCourierApi = new LoginCourierApi();
         LoginCourier loginCourier = new LoginCourier("kotov_35", "qwe1234");
-        int response = given()
-                .header("Content-type", "application/json")
-                .body(loginCourier)
-                .when()
-                .post(URL.LOGIN_COURIER_API)
-                .then().extract().path("id");
+        Response response = loginCourierApi.postLoginCourierRequest(loginCourier);
+        int id = response.then().extract().path("id");
 
-        given()
-                .header("Content-type", "application/json")
-                .when()
-                .delete("/api/v1/courier/" + response)
-                .then().assertThat().statusCode(200);
+        DeleteCourierApi deleteCourierApi = new DeleteCourierApi();
+        deleteCourierApi.deleteCourierRequest(loginCourier, id);
     }
 
     @Step("Send POST request /api/v1/courier/login")
     public Response sendPostRequestCourierLogin(String login, String password){
+        LoginCourierApi loginCourierApi = new LoginCourierApi();
         LoginCourier loginCourier = new LoginCourier(login, password);
-        Response response = given()
-                .header("Content-type", "application/json")
-                .body(loginCourier)
-                .when()
-                .post(URL.LOGIN_COURIER_API);
+        Response response = loginCourierApi.postLoginCourierRequest(loginCourier);
         return response;
     }
 
     @Step("Compare statusCode 200")
     public void compareStatusCode200(Response response){
-        response.then().assertThat().statusCode(200);
+        response.then().assertThat().statusCode(SC_OK);
     }
 
     @Step("Compare body id for notNullVallue")
@@ -192,7 +97,7 @@ public class LoginCourierTest {
 
     @Step("Compare statusCode 404")
     public void compareStatusCode404(Response response){
-        response.then().assertThat().statusCode(404);
+        response.then().assertThat().statusCode(SC_NOT_FOUND);
     }
 
     @Step("Compare body message Учетная запись не найдена")
@@ -202,7 +107,7 @@ public class LoginCourierTest {
 
     @Step("Compare statusCode 400")
     public void compareStatusCode400(Response response){
-        response.then().assertThat().statusCode(400);
+        response.then().assertThat().statusCode(SC_BAD_REQUEST);
     }
 
     @Step("Compare body message Недостаточно данных для входа")
